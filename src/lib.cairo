@@ -3,12 +3,16 @@ trait IGladiethers<TContractState> {
     fn set(ref self: TContractState, x: u128);
     fn get(self: @TContractState) -> u128;
     fn main(ref self: TContractState);
-    fn ChangeAddressTrust(ref self: TContractState);
+    fn ChangeAddressTrust(
+        ref self: TContractState, contract_address: starknet::ContractAddress, trust_flag: bool
+    );
     fn Gladiethers(ref self: TContractState);
+    fn setPartner(ref self: TContractState, contract_partner: starknet::ContractAddress);
 }
 
 #[starknet::contract]
 mod Gladiethers {
+    use core::clone::Clone;
     use core::serde::Serde;
     use core::traits::IndexView;
     use core::traits::Into;
@@ -67,17 +71,25 @@ mod Gladiethers {
             let mut queue: Array::<ContractAddress> = ArrayTrait::<ContractAddress>::new();
             let mut started: bool = false;
         }
-        fn ChangeAddressTrust(ref self: ContractState) {
+
+        fn ChangeAddressTrust(
+            ref self: ContractState, contract_address: ContractAddress, trust_flag: bool
+        ) {
             let address = get_caller_address();
-            let mut trusted = self.trustedContracts.read();
+            let mut trusted = self.trustedContracts.clone().read();
             assert!(
                 address == self.owner.read() || trusted.get(address.try_into().unwrap()),
                 "Only owner or trusted contracts can call this function"
             );
+            assert!(contract_address != address, "Can't change trust for yourself");
+            trusted.insert(contract_address.try_into().unwrap(), trust_flag);
+            self.trustedContracts.write(trusted);
         }
 
         fn Gladiethers(ref self: ContractState) {
             self.owner.write(get_caller_address());
         }
+
+        fn setPartner(ref self: ContractState, contract_partner: ContractAddress) {}
     }
 }
