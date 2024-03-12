@@ -1,48 +1,83 @@
-use core::array::ArrayTrait;
-
-#[derive(Copy, Drop)]
-struct Player {
-    id: felt252,
-    name: felt252,
-    power: u256,
+#[starknet::interface]
+trait IGladiethers<TContractState> {
+    fn set(ref self: TContractState, x: u128);
+    fn get(self: @TContractState) -> u128;
+    fn main(ref self: TContractState);
+    fn ChangeAddressTrust(ref self: TContractState);
+    fn Gladiethers(ref self: TContractState);
 }
 
-struct Plot {
-    david: Player,
-    goliath: Player,
-    winner: Player,
-}
+#[starknet::contract]
+mod Gladiethers {
+    use core::serde::Serde;
+    use core::traits::IndexView;
+    use core::traits::Into;
+    use core::option::OptionTrait;
+    use core::traits::TryInto;
+    use core::dict::Felt252DictTrait;
+    use starknet::get_caller_address;
+    use starknet::ContractAddress;
+    use core::num::traits::Zero;
+    use core::array::ArrayTrait;
+    use core::dict::Felt252Dict;
 
-fn burn(power: u256) { // burn power
-}
-
-fn get_king() -> Player {
-    //logic to get king
-    Player { id: 0, name: 'King', power: 1000, }
-}
-
-fn tribute(power: u256, mut king: Player) {
-    king.power = king.power - (power * 1 / 100);
-    burn(power * 4 / 100);
-}
-
-fn update_winner(mut player: Player, power: u256) {
-    player.power = player.power + (power * 95 / 100);
-}
-
-fn absorb(plot: Plot) {
-    if plot.david.id == plot.winner.id {
-        update_winner(plot.david, plot.goliath.power);
-        tribute(plot.goliath.power, get_king());
-    } else {
-        update_winner(plot.goliath, plot.david.power);
-        tribute(plot.david.power, get_king());
+    #[storage]
+    struct Storage {
+        stored_data: u128,
+        owner: ContractAddress,
+        partner: ContractAddress,
+        trustedContracts: Felt252Dict<bool>,
     }
-}
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() { // assert(absirv(16) == 987, 'it works!');
+    #[event]
+    #[derive(Drop, starknet::Event)]
+    enum Event {
+        FightEvent: FightEvent,
+    }
+
+    #[derive(Drop, starknet::Event)]
+    struct FightEvent {
+        #[key]
+        g1: ContractAddress,
+        g2: ContractAddress,
+        random: u128,
+        fightPower: u128,
+        g1Power: u128,
+    }
+
+    #[abi(embed_v0)]
+    impl Gladiethers of super::IGladiethers<ContractState> {
+        fn set(ref self: ContractState, x: u128) {
+            self.stored_data.write(x);
+        }
+        fn get(self: @ContractState) -> u128 {
+            self.stored_data.read()
+        }
+        fn main(ref self: ContractState) {
+            let mut m_Owner: ContractAddress = self.owner.read();
+            let mut partner: ContractAddress = self.partner.read();
+            let mut gladiatorToPower: Array::<u128> = ArrayTrait::<u128>::new();
+            let mut gladiatorToCooldown: Array::<u128> = ArrayTrait::<u128>::new();
+            let mut gladiatorToLuckyPoints: Array::<u128> = ArrayTrait::<u128>::new();
+            let mut gladiatorToQueuePosition: Array::<u128> = ArrayTrait::<u128>::new();
+            let mut trustedContracts: Array::<u32> = ArrayTrait::<u32>::new();
+            let mut m_OwnerFees: u128 = 0;
+            let mut kingGladiator: u128 = 0;
+            let mut kingGladiatorFounder: u128 = 0;
+            let mut queue: Array::<ContractAddress> = ArrayTrait::<ContractAddress>::new();
+            let mut started: bool = false;
+        }
+        fn ChangeAddressTrust(ref self: ContractState) {
+            let address = get_caller_address();
+            let mut trusted = self.trustedContracts.read();
+            assert!(
+                address == self.owner.read() || trusted.get(address.try_into().unwrap()),
+                "Only owner or trusted contracts can call this function"
+            );
+        }
+
+        fn Gladiethers(ref self: ContractState) {
+            self.owner.write(get_caller_address());
+        }
     }
 }
