@@ -90,6 +90,8 @@ mod Gladiethers {
             self.owner.write(get_caller_address());
         }
 
-        fn setPartner(ref self: ContractState, contract_partner: ContractAddress) {}
+        fn setPartner(ref self: ContractState, contract_partner: ContractAddress) {
+            self.partner.write(contract_partner)
+        }
     }
 }
