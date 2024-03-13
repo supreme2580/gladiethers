@@ -2,9 +2,6 @@ use starknet::ContractAddress;
 
 #[starknet::interface]
 trait IGladiethers<TContractState> {
-    fn set(ref self: TContractState, x: u128);
-    fn get(self: @TContractState) -> u128;
-    fn main(ref self: TContractState);
     fn ChangeAddressTrust(
         ref self: TContractState, contract_address: ContractAddress, trust_flag: bool
     );
@@ -30,7 +27,7 @@ mod Gladiethers {
     use core::dict::Felt252Dict;
     use starknet::{
         get_block_number, get_caller_address, get_contract_address, get_block_timestamp,
-        get_tx_info, get_block_info,
+        get_tx_info, get_block_info
     };
 
     #[storage]
@@ -62,27 +59,6 @@ mod Gladiethers {
 
     #[abi(embed_v0)]
     impl Gladiethers of super::IGladiethers<ContractState> {
-        fn set(ref self: ContractState, x: u128) {
-            self.stored_data.write(x);
-        }
-        fn get(self: @ContractState) -> u128 {
-            self.stored_data.read()
-        }
-        fn main(ref self: ContractState) {
-            let mut m_Owner: ContractAddress = self.owner.read();
-            let mut partner: ContractAddress = self.partner.read();
-            let mut gladiatorToPower: Array::<u128> = ArrayTrait::<u128>::new();
-            let mut gladiatorToCooldown: Array::<u128> = ArrayTrait::<u128>::new();
-            let mut gladiatorToLuckyPoints: Array::<u128> = ArrayTrait::<u128>::new();
-            let mut gladiatorToQueuePosition: Array::<u128> = ArrayTrait::<u128>::new();
-            let mut trustedContracts: Array::<u32> = ArrayTrait::<u32>::new();
-            let mut m_OwnerFees: u128 = 0;
-            let mut kingGladiator: u128 = 0;
-            let mut kingGladiatorFounder: u128 = 0;
-            let mut queue: Array::<ContractAddress> = ArrayTrait::<ContractAddress>::new();
-            let mut started: bool = false;
-        }
-
         fn ChangeAddressTrust(
             ref self: ContractState, contract_address: ContractAddress, trust_flag: bool
         ) {
@@ -96,7 +72,6 @@ mod Gladiethers {
             trusted.insert(contract_address.try_into().unwrap(), trust_flag);
             self.trustedContracts.write(trusted);
         }
-
         fn Gladiethers(ref self: ContractState) {
             self.owner.write(get_caller_address());
         }
@@ -109,8 +84,25 @@ mod Gladiethers {
             //the address depositing ether must match the address of the caller of this contract
             let tx = get_tx_info();
             let origin = tx.unbox().account_contract_address;
-            assert!(get_caller_address() == origin, "Only the origin can call this function");
-
+            //unsure the tip is the transaction value
+            let value = tx.unbox().tip;
+            assert!(
+                get_caller_address() == origin && value >= 10,
+                "Only the origin can call this function"
+            );
+            let mut gladiatorToQueuePosition = self.gladiatorToQueuePosition.read();
+            let mut queue = self.queue.read();
+            if self
+                .queue
+                .read()
+                .len() > gladiatorToQueuePosition
+                .get(get_caller_address().try_into().unwrap()) { // if queue
+            //     .get(
+            //         gladiatorToQueuePosition.get(get_caller_address().try_into().unwrap())
+            //     ) == get_caller_address()
+            //     .try_into()
+            //     .unwrap() {}
+            }
             return false;
         }
         fn enter(ref self: ContractState, gladiator: ContractAddress) {
