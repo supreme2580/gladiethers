@@ -10,10 +10,13 @@ trait IGladiethers<TContractState> {
     );
     fn Gladiethers(ref self: TContractState);
     fn setPartner(ref self: TContractState, contract_partner: ContractAddress);
+    fn joinArena(ref self: TContractState) -> bool;
+    fn enter(ref self: TContractState, gladiator: ContractAddress);
 }
 
 #[starknet::contract]
 mod Gladiethers {
+    use core::box::BoxTrait;
     use core::clone::Clone;
     use core::serde::Serde;
     use core::traits::IndexView;
@@ -21,11 +24,14 @@ mod Gladiethers {
     use core::option::OptionTrait;
     use core::traits::TryInto;
     use core::dict::Felt252DictTrait;
-    use starknet::get_caller_address;
     use starknet::ContractAddress;
     use core::num::traits::Zero;
     use core::array::ArrayTrait;
     use core::dict::Felt252Dict;
+    use starknet::{
+        get_block_number, get_caller_address, get_contract_address, get_block_timestamp,
+        get_tx_info, get_block_info,
+    };
 
     #[storage]
     struct Storage {
@@ -33,6 +39,9 @@ mod Gladiethers {
         owner: ContractAddress,
         partner: ContractAddress,
         trustedContracts: Felt252Dict<bool>,
+        gladiatorToCooldown: Felt252Dict<u64>,
+        gladiatorToQueuePosition: Felt252Dict<u32>,
+        queue: Array::<ContractAddress>,
     }
 
     #[event]
@@ -78,7 +87,7 @@ mod Gladiethers {
             ref self: ContractState, contract_address: ContractAddress, trust_flag: bool
         ) {
             let address = get_caller_address();
-            let mut trusted = self.trustedContracts.clone().read();
+            let mut trusted = self.trustedContracts.read();
             assert!(
                 address == self.owner.read() || trusted.get(address.try_into().unwrap()),
                 "Only owner or trusted contracts can call this function"
@@ -94,6 +103,25 @@ mod Gladiethers {
 
         fn setPartner(ref self: ContractState, contract_partner: ContractAddress) {
             self.partner.write(contract_partner)
+        }
+
+        fn joinArena(ref self: ContractState) -> bool {
+            //the address depositing ether must match the address of the caller of this contract
+            let tx = get_tx_info();
+            let origin = tx.unbox().account_contract_address;
+            assert!(get_caller_address() == origin, "Only the origin can call this function");
+
+            return false;
+        }
+        fn enter(ref self: ContractState, gladiator: ContractAddress) {
+            let mut gladiatorCooldowns = self.gladiatorToCooldown.read();
+            gladiatorCooldowns.insert(gladiator.try_into().unwrap(), get_block_timestamp() + 86400);
+            let mut queue = self.queue.read();
+            queue.append(gladiator);
+            let queue_len = queue.len();
+            self.queue.write(queue);
+            let mut gladiatorToQueuePosition = self.gladiatorToQueuePosition.read();
+            gladiatorToQueuePosition.insert(gladiator.try_into().unwrap(), queue_len);
         }
     }
 }
