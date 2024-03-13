@@ -1,13 +1,15 @@
+use starknet::ContractAddress;
+
 #[starknet::interface]
 trait IGladiethers<TContractState> {
     fn set(ref self: TContractState, x: u128);
     fn get(self: @TContractState) -> u128;
     fn main(ref self: TContractState);
     fn ChangeAddressTrust(
-        ref self: TContractState, contract_address: starknet::ContractAddress, trust_flag: bool
+        ref self: TContractState, contract_address: ContractAddress, trust_flag: bool
     );
     fn Gladiethers(ref self: TContractState);
-    fn setPartner(ref self: TContractState, contract_partner: starknet::ContractAddress);
+    fn setPartner(ref self: TContractState, contract_partner: ContractAddress);
 }
 
 #[starknet::contract]
